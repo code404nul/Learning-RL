@@ -103,7 +103,7 @@ class MyApp(ShowBase):
         props = self.win.getProperties()
         win_w = props.getXSize()
         win_h = props.getYSize()
-        self.camLens.setAspectRatio((win_w * 0.5) / win_h)
+        self.camLens.setAspectRatio(2)
         self.camLens.setFov(50)
 
         # --- Caméra robot : 3ème personne (moitié droite) ---
@@ -128,22 +128,29 @@ class MyApp(ShowBase):
         self.place_cubes()
 
         # --- Modèle robot GLTF ---
-        self.model = self.loader.loadModel("models/robot_gltf/scene.gltf")
+        self.model = self.loader.loadModel("models/robot.gltf")
         self.model.reparentTo(self.render)
-        self.model.setScale(1.3)
+        self.model.setHpr(0, 90, 0)
         self._sync_model()
 
         # --- Contrôles clavier ---
         self.accept("arrow_up",    self.move_robot, [0,  -1])
         self.accept("arrow_down",  self.move_robot, [0,   1])
-        self.accept("arrow_left",  self.move_robot, [-1,  0])
-        self.accept("arrow_right", self.move_robot, [ 1,  0])
+        self.accept("arrow_left",  self.move_robot, [1,  0])
+        self.accept("arrow_right", self.move_robot, [-1,  0])
 
         # --- Tâche caméra robot ---
         self.taskMgr.add(self.update_robot_cam, "update_robot_cam")
-
+        self.taskMgr.doMethodLater(0.1, self._fix_aspect, "fix_aspect")
     # ------------------------------------------------------------------
 
+    def _fix_aspect(self, task):
+        props = self.win.getProperties()
+        win_w = props.getXSize()
+        win_h = props.getYSize()
+        self.camLens.setAspectRatio((win_w * 0.5) / win_h)
+        return task.done
+    
     def _robot_world_pos(self):
         """Retourne la position monde (x, y, z) du robot."""
         x = self.plateau_origin_x + self.robot_col * self.cell_w + self.cell_w / 2
@@ -177,11 +184,11 @@ class MyApp(ShowBase):
 
         h = self.model.getH()
         angle = h * (pi / 180)
-        dist_back = self.cell_h * 2.0   # un peu moins loin
+        dist_back = self.cell_h * -2.0   # un peu moins loin
         dist_up   = self.cell_h * 4.0   # beaucoup plus haut (était 1.5)
 
-        cam_x = x + sin(angle) * dist_back
-        cam_y = y - cos(angle) * dist_back
+        cam_x = x + dist_back+3
+        cam_y = y - dist_back
         cam_z = z + dist_up
 
         self.robot_cam_np.setPos(cam_x, cam_y, cam_z)
