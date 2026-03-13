@@ -1,5 +1,4 @@
-from math import pi, sin, cos
-import random
+from math import pi
 from direct.showbase.ShowBase import ShowBase
 from direct.task import Task
 from panda3d.core import (
@@ -8,7 +7,9 @@ from panda3d.core import (
     Geom, GeomTriangles, GeomNode,
     Camera, PerspectiveLens
 )
+import queue
 
+command_queue = queue.Queue()
 
 def make_gradient_cube(w, d, h):
     fmt = GeomVertexFormat.getV3c4()
@@ -142,7 +143,15 @@ class MyApp(ShowBase):
         # --- Tâche caméra robot ---
         self.taskMgr.add(self.update_robot_cam, "update_robot_cam")
         self.taskMgr.doMethodLater(0.1, self._fix_aspect, "fix_aspect")
-    # ------------------------------------------------------------------
+        # Ajouter cette tâche à la fin de __init__ :
+        self.taskMgr.add(self.process_commands, "process_commands")
+
+    def process_commands(self, task):
+        """Consomme les commandes envoyées depuis d'autres fichiers."""
+        while not command_queue.empty():
+            dcol, drow = command_queue.get_nowait()
+            self.move_robot(dcol, drow)
+        return Task.cont
 
     def _fix_aspect(self, task):
         props = self.win.getProperties()
@@ -242,6 +251,6 @@ class MyApp(ShowBase):
                 cube_np.setLightOff()
                 cube_np.reparentTo(self.render)
 
-
-app = MyApp()
-app.run()
+if __name__ == "__main__":
+    app = MyApp()
+    app.run()
