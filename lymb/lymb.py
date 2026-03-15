@@ -131,7 +131,7 @@ class MyApp(ShowBase):
         # --- Modèle robot GLTF ---
         self.model = self.loader.loadModel("models/robot.gltf")
         self.model.reparentTo(self.render)
-        self.model.setHpr(0, 90, 0)
+        self.model.setHpr(0, 0, 0)
         self._sync_model()
 
         # --- Contrôles clavier ---

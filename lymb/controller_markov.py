@@ -6,11 +6,14 @@ from random import random
 
 app = MyApp()
 
+STEPS = 70
+
 class markov_controller:
     def __init__(self):
         self.states = {} # (x, y) : [probability action1, probability action2, ...]
         self.action = [(0, 1), (1, 0), (0, -1), (-1, 0)]
         self.current_state = (1, 18)
+        self.reward = []
 
         for row in range(20):
             for col in range(20):
@@ -24,19 +27,30 @@ class markov_controller:
     def get_action(self):
         futur_state = self.states[self.current_state]
         choice = random()
-        for state in futur_state:
-            if state < choice:
-                choice -= state
+        print(choice)
+        for state_i in range(len(futur_state)):
+            print(futur_state[state_i])
+            if futur_state[state_i] < choice:
+                choice -= futur_state[state_i]
             else:
-                return self.action[futur_state.index(state)]
+                self.reward.append(-1) 
+                return self.action[state_i]
+
+            
+    def end_episode(self, reward):
+        pass
+
         
 
 def exec_state():
     markov = markov_controller()
     while True:
-        time.sleep(1)
-        markov.get_current_state((app.robot_row, app.robot_col))
-        command_queue.put(markov.get_action())
+        for i in range(STEPS):
+            time.sleep(1)
+            markov.get_current_state((app.robot_row, app.robot_col))
+            action = markov.get_action()
+            command_queue.put(action)
+            print(action)
 
 
 # Lancer la logique dans un thread daemon (s'arrête avec l'app)
