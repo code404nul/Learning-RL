@@ -131,7 +131,7 @@ class MyApp(ShowBase):
         # --- Modèle robot GLTF ---
         self.model = self.loader.loadModel("models/robot.gltf")
         self.model.reparentTo(self.render)
-        self.model.setHpr(0, 0, 0)
+        self.model.setHpr(0, 90, 0)
         self._sync_model()
 
         # --- Contrôles clavier ---
@@ -150,6 +150,10 @@ class MyApp(ShowBase):
         """Consomme les commandes envoyées depuis d'autres fichiers."""
         while not command_queue.empty():
             dcol, drow = command_queue.get_nowait()
+            if (dcol, drow) == (0, 0):
+                self.robot_col = 1.0
+                self.robot_row = 18.0
+                self._sync_model()
             self.move_robot(dcol, drow)
         return Task.cont
 
@@ -183,10 +187,6 @@ class MyApp(ShowBase):
                 self.robot_row = new_row
                 self._sync_model()
 
-                if dcol ==  1: self.model.setH(270)
-                if dcol == -1: self.model.setH(90)
-                if drow == -1: self.model.setH(0)
-                if drow ==  1: self.model.setH(180)
 
     def update_robot_cam(self, task):
         x, y, z = self._robot_world_pos()
