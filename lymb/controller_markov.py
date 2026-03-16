@@ -2,11 +2,14 @@
 import threading
 import time
 from lymb import MyApp, command_queue
-from random import random
+from random import random, randint
+from math import isclose
+
+
 
 app = MyApp()
 
-STEPS = 70
+STEPS = 350
 
 class markov_controller:
     def __init__(self):
@@ -14,7 +17,7 @@ class markov_controller:
         self.action = [(0, 1), (1, 0), (0, -1), (-1, 0)]
         self.history = [] # action, state
         self.current_state = (1, 18)
-        self.reward, self.G = {0: [[] for i in range(STEPS)]}, [[] for i in range(STEPS)]
+        self.reward = {0: [0 for i in range(STEPS)]}
         self.gamma, self.alpha = 0.7, 0.05
         self.cursor, self.nb_episode = 0, 0
 
@@ -34,18 +37,17 @@ class markov_controller:
         
         futur_state = self.states[self.current_state]
         choice = random()
-        print(choice)
+        
         for state_i in range(len(futur_state)):
-            print(futur_state[state_i])
-            if futur_state[state_i] < choice:
-                choice -= futur_state[state_i]
-            else:
+            choice -= futur_state[state_i]
+            if isclose(choice, 0,rel_tol=1e-1) or choice <= 0:
                 action = self.action[state_i]
                 
                 self.reward[self.nb_episode][self.cursor] = -1
-                self.history.append([action, self.current_state])
+                self.history.append([state_i, self.current_state]) 
                 self.cursor += 1
                 return action
+        return randint(0, 3)
 
     def opposite(self, val): return 1-val
     
@@ -53,30 +55,36 @@ class markov_controller:
         self.cursor = 0
         for state_i in range(STEPS):
             G = sum(self.reward[self.nb_episode][state_i + k] * (self.gamma ** k) for k in range(STEPS - state_i))
-            action_previous = self.history[state_i][0] # get action
-            i_other_action = [i for i in range(4) if i != action_previous]
-            old_action = self.states[state_i][action_previous]
+            action, state = self.history[state_i]
+            old_action = self.states[state][action]
             
-            if self.G[state_i] > 0:
-                self.state[self.history[state_i]] += self.alpha * self.G[state_i] * self.states[state_i][action_previous]
-            else: self.state[self.history[state_i]] -= self.alpha * self.G[state_i] * self.states[state_i][action_previous]
-            ratio = self.opposite(self.state[self.history[state_i]])/self.opposite(old_action)
-            for i in i_other_action:
-                self.state[self.history[state_i]] *= ratio
+            if G > 0:
+                self.states[state][action] += self.alpha * G * (1 - self.states[state][action])
+            else: self.states[state][action] -= self.alpha * G * self.states[state][action]
             
+            ratio = self.opposite(self.states[state][action]) / self.opposite(old_action)
+            for i in range(4):
+                if i == action: 
+                    continue
+                self.states[state][i] *= ratio
+        
+        self.history = []
         self.nb_episode += 1
-        self.reward[self.nb_episode], self.G[self.nb_episode] = [[] for i in range(STEPS)],[[] for i in range(STEPS)]
+        self.reward[self.nb_episode] = [[] for i in range(STEPS)]
+        print(f"Génération : {self.nb_episode}")
+
 
 def exec_state():
     markov = markov_controller()
     while True:
         for i in range(STEPS):
-            time.sleep(1)
+            time.sleep(0.02)
             markov.get_current_state((app.robot_row, app.robot_col))
             action = markov.get_action()
+            if action == (0, 0): break
             command_queue.put(action)
-            print(action)
         markov.end_episode()
+        command_queue.put((0, 0))
 
 
 # Lancer la logique dans un thread daemon (s'arrête avec l'app)
