@@ -150,10 +150,11 @@ class MyApp(ShowBase):
         """Consomme les commandes envoyées depuis d'autres fichiers."""
         while not command_queue.empty():
             dcol, drow = command_queue.get_nowait()
-            if (dcol, drow) == (0, 0):
+            if (dcol, drow) == (0, 0): #restart
                 self.robot_col = 1.0
                 self.robot_row = 18.0
                 self._sync_model()
+                continue
             self.move_robot(dcol, drow)
         return Task.cont
 
