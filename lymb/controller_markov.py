@@ -12,7 +12,7 @@ class markov_controller:
     def __init__(self):
         self.states = {} # (x, y) : [probability action1, probability action2, ...]
         self.action = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-        self.history = []
+        self.history = [] # action, state
         self.current_state = (1, 18)
         self.reward, self.G = {0: [[] for i in range(STEPS)]}, [[] for i in range(STEPS)]
         self.gamma, self.alpha = 0.7, 0.05
@@ -31,6 +31,7 @@ class markov_controller:
             self.reward[self.nb_episode][self.cursor] = 1
             self.end_episode()
             return (0, 0) # renitialise le bordel
+        
         futur_state = self.states[self.current_state]
         choice = random()
         print(choice)
@@ -42,19 +43,29 @@ class markov_controller:
                 action = self.action[state_i]
                 
                 self.reward[self.nb_episode][self.cursor] = -1
-                self.history.append([self.current_state, action])
+                self.history.append([action, self.current_state])
                 self.cursor += 1
                 return action
 
+    def opposite(self, val): return 1-val
+    
+    def end_episode(self):
+        self.cursor = 0
+        for state_i in range(STEPS):
+            G = sum(self.reward[self.nb_episode][state_i + k] * (self.gamma ** k) for k in range(STEPS - state_i))
+            action_previous = self.history[state_i][0] # get action
+            i_other_action = [i for i in range(4) if i != action_previous]
+            old_action = self.states[state_i][action_previous]
             
-def end_episode(self):
-    self.cursor = 0
-    for state_i in range(STEPS):
-        self.G[state_i] = sum(self.reward[self.nb_episode][state_i + k] * (self.gamma ** k) for k in range(STEPS - state_i))
-        if self.G[state_i] > 0:
-            self.state[self.history[self.cursor][0]] += 69 # male alpha * G_t * (1 - P(s, a))
-    self.nb_episode += 1
-    self.reward[self.nb_episode], self.G[self.nb_episode] = [[] for i in range(STEPS)],[[] for i in range(STEPS)]
+            if self.G[state_i] > 0:
+                self.state[self.history[state_i]] += self.alpha * self.G[state_i] * self.states[state_i][action_previous]
+            else: self.state[self.history[state_i]] -= self.alpha * self.G[state_i] * self.states[state_i][action_previous]
+            ratio = self.opposite(self.state[self.history[state_i]])/self.opposite(old_action)
+            for i in i_other_action:
+                self.state[self.history[state_i]] *= ratio
+            
+        self.nb_episode += 1
+        self.reward[self.nb_episode], self.G[self.nb_episode] = [[] for i in range(STEPS)],[[] for i in range(STEPS)]
 
 def exec_state():
     markov = markov_controller()
